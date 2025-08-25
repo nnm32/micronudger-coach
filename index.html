@@ -1,84 +1,1035 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>micronudger-coach — AI Obesity Coaching (Safe Mode)</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8">
+<title>micronudger-coach — single-file</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="color-scheme" content="light dark">
+<style>
+  :root{
+    --bg1:#0e0f22; --bg2:#1a1b3a; --card:#101226dd; --ink:#f6f8ff; --muted:#c3c8ffb0;
+    --accent:#6ee7ff; --accent2:#8ef9c5; --danger:#ff6b6b; --ok:#9aff8a; --shadow: rgba(0,0,0,.25);
+    --glow: 0 0 40px rgba(110,231,255,.2), 0 0 80px rgba(142,249,197,.15);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--ink); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+    background: radial-gradient(1200px 600px at 20% -10%, #243b88 0%, transparent 60%),
+                radial-gradient(1200px 800px at 120% 0%, #1f8a70 0%, transparent 55%),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+    background-attachment: fixed;
+  }
+  .wrap{
+    max-width:960px; margin:32px auto; padding:0 16px;
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;
+  }
+  .title{ font-weight:700; letter-spacing:.3px; display:flex; align-items:center; gap:10px; }
+  .title .dot{ width:10px; height:10px; background:linear-gradient(45deg,var(--accent),var(--accent2)); border-radius:50%; box-shadow:var(--glow); }
+  #banner{ font-weight:600; opacity:.95 }
+  .card{
+    background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px;
+    box-shadow: 0 10px 30px var(--shadow); backdrop-filter: blur(6px);
+  }
+  .topbar{
+    display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .topbar button{
+    background:#141733; color:var(--ink); border:1px solid rgba(255,255,255,.08); border-radius:12px;
+    padding:8px 12px; cursor:pointer; transition:transform .05s ease; box-shadow: var(--glow);
+  }
+  .topbar button:hover{ transform:translateY(-1px) }
+  .transcript{ height:54vh; overflow:auto; padding:16px; scroll-behavior:smooth; }
+  .msg{ max-width:90%; margin:8px 0; padding:10px 12px; border-radius:14px; white-space:pre-wrap; }
+  .msg.bot{ background:#0f1329; border:1px solid rgba(255,255,255,.06)}
+  .msg.you{ background:#0a1b24; border:1px solid rgba(110,231,255,.22); margin-left:auto }
+  .composer{ display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,.06) }
+  .composer input{
+    flex:1; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+    background:#0f1329; color:var(--ink);
+  }
+  .composer button{ padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#172043; color:var(--ink); cursor:pointer }
+  .muted{ color:var(--muted); font-size:13px }
+  footer{ text-align:center; margin:14px 0; color:var(--muted); font-size:12px }
+  .overlay{
+    position:fixed; inset:0; background:rgba(7,8,20,.58); display:grid; place-items:center; z-index:50;
+  }
+  .sheet{
+    width:min(920px,92vw); background:#0f1124; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px; box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  }
+  .grid{ display:grid; gap:10px }
+  .grid.cols-2{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+  label{ font-size:14px; color:var(--muted) }
+  input[type="text"], input[type="password"], input[type="time"], input[type="number"]{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0d1126; color:var(--ink);
+  }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .note{ font-size:12px; color:var(--muted) }
+  .camrow video, .camrow canvas{
+    width:100%; max-height:380px; border-radius:12px; background:#000; object-fit:contain;
+  }
+  .photobar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px }
+  .hidden{ display:none !important }
+  @media (max-width:720px){ .transcript{height:58vh} .grid.cols-2{grid-template-columns:1fr} }
+</style>
 </head>
 <body>
-  <div class="orb o1"></div>
-  <div class="orb o2"></div>
-  <div class="orb o3"></div>
+  <div class="wrap">
+    <header>
+      <div class="title"><div class="dot"></div> micronudger-coach</div>
+      <div id="banner" class="muted">Welcome</div>
+    </header>
 
-  <div id="app">
-    <div class="card">
+    <div class="card" id="app">
       <div class="topbar">
-        <div class="title">micronudger-coach <span class="badge">beta</span></div>
-        <div class="controls">
-          <button id="btnSettings" title="Open settings">Settings</button>
-          <button id="btnWipe" title="Wipe history & profile">Wipe</button>
-          <button id="btnLock" title="Lock the app">Lock</button>
-        </div>
+        <button id="btnSettings" title="Settings">⚙️ Settings</button>
+        <button id="btnPhoto" title="Take or upload a food photo">📷 Photo</button>
+        <button id="btnWipe" title="Erase history & profile">🧹 Wipe</button>
+        <button id="btnLock" title="Lock with passphrase">🔒 Lock</button>
+        <span class="muted">Tip: type <em>help</em> for commands</span>
       </div>
 
-      <div id="banner" class="banner"></div>
-      <div id="transcript"></div>
+      <div class="transcript" id="transcript"></div>
 
       <div class="composer">
-        <input id="userInput" type="text" placeholder="Type a message… (press Enter)" autocomplete="off" />
+        <input id="userInput" type="text" placeholder="Message your coach…" autocomplete="off">
         <button id="sendBtn">Send</button>
       </div>
-      <div class="footer-note">
-        This tool offers general lifestyle coaching only and does <b>not</b> provide diagnosis or medical advice.
-        If this is an emergency, call 911 (U.S.) or your local emergency number. For mental health crises in the U.S., call or text <b>988</b>.
+    </div>
+
+    <footer>
+      This coach offers **general lifestyle coaching only** and does not provide diagnosis or medical advice.
+      If this is an emergency, call 911 (U.S.) or your local emergency number. For mental health crises in the U.S., call or text 988.
+    </footer>
+  </div>
+
+  <!-- PASSWORD GATE -->
+  <div class="overlay" id="gate" style="display:none">
+    <div class="sheet grid">
+      <h2 id="gateTitle">Welcome</h2>
+      <p id="gateDesc" class="muted">Create a passphrase to lock your coach.</p>
+      <label>Passphrase</label>
+      <input id="pw" type="password" placeholder="Enter passphrase">
+      <div id="pw2label">
+        <label>Confirm passphrase</label>
+        <input id="pw2" type="password" placeholder="Repeat passphrase">
+      </div>
+      <button id="unlockBtn">Save & Continue</button>
+      <p class="note">Your passphrase is hashed locally (SHA-256) and never leaves your browser.</p>
+    </div>
+  </div>
+
+  <!-- ONBOARD -->
+  <div class="overlay" id="onboard" style="display:none">
+    <div class="sheet grid cols-2">
+      <div>
+        <h2>Hi! Let’s get you set up</h2>
+        <label>Your name</label>
+        <input id="who" type="text" placeholder="e.g., Nihit">
+      </div>
+      <div>
+        <label>Daily nudge time (optional)</label>
+        <input id="nudgetime" type="time">
+        <label style="margin-top:8px; display:block">Time zone offset in minutes (optional)</label>
+        <input id="tzoffset" type="number" placeholder="Auto if blank (e.g., -300 for ET)">
+      </div>
+      <div class="row">
+        <button id="saveOnboardBtn">Continue</button>
+        <span class="note">We’ll remember your settings in this browser only.</span>
       </div>
     </div>
   </div>
 
-  <!-- Gate: set OR enter password -->
-  <div class="overlay" id="gate" style="display:none">
-    <div class="sheet">
-      <h2 id="gateTitle">Welcome</h2>
-      <p class="small" id="gateDesc">Create a passphrase to lock your coach. You’ll use this to unlock later.</p>
-      <label for="pw">Passphrase</label>
-      <input id="pw" type="password" placeholder="••••••••" />
-      <label for="pw2" id="pw2label">Confirm passphrase</label>
-      <input id="pw2" type="password" placeholder="••••••••" />
-      <button id="unlockBtn">Save & Continue</button>
-      <p class="small">Your passphrase hash is stored locally in your browser (localStorage). It is never sent to a server.</p>
-    </div>
-  </div>
-
-  <!-- Name + preferences capture -->
-  <div class="overlay" id="onboard" style="display:none">
-    <div class="sheet">
-      <h2>Let’s personalize your coach</h2>
-      <p>Please tell me your first name and a daily nudge time. I’ll greet you by name and remember your preferred time.</p>
-      <label for="who">Your name</label>
-      <input id="who" type="text" placeholder="e.g., Alex" />
-      <label for="nudgetime">Daily nudge time (24h HH:MM)</label>
-      <input id="nudgetime" type="time" />
-      <label for="tzoffset">Timezone offset (minutes, optional)</label>
-      <input id="tzoffset" type="number" placeholder="Leave blank to auto-detect" />
-      <button id="saveOnboardBtn">Save</button>
-    </div>
-  </div>
-
-  <!-- Settings -->
+  <!-- SETTINGS -->
   <div class="overlay" id="settings" style="display:none">
-    <div class="sheet">
-      <h2>Settings</h2>
-      <label for="s_name">Name</label>
-      <input id="s_name" type="text" />
-      <label for="s_time">Daily nudge time</label>
-      <input id="s_time" type="time" />
-      <label for="s_tz">Timezone offset (minutes; blank = auto)</label>
-      <input id="s_tz" type="number" />
-      <button id="saveSettingsBtn">Save</button>
+    <div class="sheet grid cols-2">
+      <div>
+        <h3>Profile</h3>
+        <label>Name</label>
+        <input id="s_name" type="text" placeholder="Your name">
+        <label style="margin-top:8px">Nickname (optional)</label>
+        <input id="s_nick" type="text" placeholder="What should I call you?">
+      </div>
+      <div>
+        <h3>Reminders</h3>
+        <label>Daily nudge time</label>
+        <input id="s_time" type="time">
+        <label style="margin-top:8px">Time zone offset (minutes)</label>
+        <input id="s_tz" type="number" placeholder="Auto if blank">
+      </div>
+      <div class="row">
+        <button id="saveSettingsBtn">Save</button>
+        <button id="closeSettingsBtn" type="button">Close</button>
+      </div>
+      <p class="note">Data is stored locally in your browser. Use “Wipe” to erase everything.</p>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- PHOTO MODAL -->
+  <div class="overlay" id="photoModal" style="display:none">
+    <div class="sheet">
+      <h2>Recognize foods from a photo</h2>
+      <p class="small muted">All processing runs in your browser—nothing is uploaded.</p>
+
+      <div class="camrow">
+        <video id="cam" autoplay playsinline muted></video>
+        <canvas id="frame" class="hidden"></canvas>
+      </div>
+
+      <div class="photobar">
+        <button id="startCam">Start Camera</button>
+        <button id="snap">Capture</button>
+        <input id="upload" type="file" accept="image/*">
+        <button id="detect">Detect Foods</button>
+        <button id="closePhoto">Close</button>
+      </div>
+      <div id="photoStatus" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- External libs for on-device vision (only if you use Photo) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+
+  <script>
+  // -------------- micronudger-coach single-file (v5) --------------
+  // Data + storage
+  const STORAGE_KEY = "mn_data_v5";
+  const SESSION_KEY = "mn_unlocked";
+
+  const defaultData = {
+    profile: { name: null, nickname: null, nicknamePending: false, tzOffsetMin: null, nudgeTime: null },
+    pref: { passHash: null },
+    history: [],
+    goals: [],
+    lastNudgeISO: null,
+    water: { targetOz: null, intakeTodayOz: 0, lastDate: null, guide: "us" },
+    sleep: { targetHours: 7.5 },
+    emotions: { recent: [], counts: {}, lastTag: null }
+  };
+
+  // DOM
+  const EL = {
+    transcript: document.getElementById("transcript"),
+    input: document.getElementById("userInput"),
+    send: document.getElementById("sendBtn"),
+    banner: document.getElementById("banner"),
+    gate: document.getElementById("gate"),
+    gateTitle: document.getElementById("gateTitle"),
+    gateDesc: document.getElementById("gateDesc"),
+    pw: document.getElementById("pw"),
+    pw2: document.getElementById("pw2"),
+    unlockBtn: document.getElementById("unlockBtn"),
+    onboard: document.getElementById("onboard"),
+    who: document.getElementById("who"),
+    nudgetime: document.getElementById("nudgetime"),
+    tzoffset: document.getElementById("tzoffset"),
+    saveOnboardBtn: document.getElementById("saveOnboardBtn"),
+    settings: document.getElementById("settings"),
+    s_name: document.getElementById("s_name"),
+    s_nick: document.getElementById("s_nick"),
+    s_time: document.getElementById("s_time"),
+    s_tz: document.getElementById("s_tz"),
+    saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+    closeSettingsBtn: document.getElementById("closeSettingsBtn"),
+    btnWipe: document.getElementById("btnWipe"),
+    btnLock: document.getElementById("btnLock"),
+    btnSettings: document.getElementById("btnSettings"),
+    btnPhoto: document.getElementById("btnPhoto"),
+    photoModal: document.getElementById("photoModal"),
+    startCam: document.getElementById("startCam"),
+    snap: document.getElementById("snap"),
+    upload: document.getElementById("upload"),
+    detect: document.getElementById("detect"),
+    closePhoto: document.getElementById("closePhoto"),
+    cam: document.getElementById("cam"),
+    frame: document.getElementById("frame"),
+    photoStatus: document.getElementById("photoStatus")
+  };
+
+  // Helpers
+  function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+  function loadData(){
+    try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : deepCopy(defaultData); }
+    catch(e){ return deepCopy(defaultData); }
+  }
+  function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+  function wipeAll(){ localStorage.removeItem(STORAGE_KEY); sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+  function addMsg(text, who="bot"){
+    const wrap = document.createElement("div");
+    wrap.className = `msg ${who}`;
+    wrap.innerText = text;
+    EL.transcript.appendChild(wrap);
+    EL.transcript.scrollTop = EL.transcript.scrollHeight;
+  }
+  function addYou(text){ addMsg(text, "you"); const d = loadData(); d.history.push({ who:"you", text, ts: Date.now() }); saveData(d); }
+  function addBot(text){ if(text) addMsg(text, "bot"); const d = loadData(); d.history.push({ who:"bot", text, ts: Date.now() }); saveData(d); }
+  function renderHistory(){ const d = loadData(); EL.transcript.innerHTML = ""; for(const m of d.history){ addMsg(m.text, m.who === "you" ? "you":"bot"); } }
+  function firstName(){ const d = loadData(); return d.profile.nickname || d.profile.name || "friend"; }
+  function todayISO(tzOffsetMin){
+    const now = new Date(); const sys = -now.getTimezoneOffset();
+    const local = new Date(now.getTime() + ( (tzOffsetMin ?? sys) - sys ) * 60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  // Banner
+  function renderBanner(){
+    const d = loadData(); const name = d.profile.nickname || d.profile.name || "friend";
+    const now = new Date(); const sys = -now.getTimezoneOffset();
+    const tz = d.profile.tzOffsetMin ?? sys;
+    const local = new Date(now.getTime() + (tz - sys) * 60000);
+    const h = local.getHours();
+    const tod = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+    EL.banner.textContent = `${tod}, ${name}!` + (d.profile.nudgeTime ? ` • Daily nudge at ${d.profile.nudgeTime}` : "");
+  }
+
+  // Password gate
+  async function sha256(text){
+    const enc = new TextEncoder();
+    const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  function showGate(){
+    const d = loadData(); const hasPass = !!d.pref.passHash;
+    EL.gateTitle.textContent = hasPass ? "Unlock" : "Welcome";
+    EL.gateDesc.textContent = hasPass ? "Enter your passphrase to unlock." : "Create a passphrase to lock your coach.";
+    document.getElementById("pw2label").style.display = hasPass ? "none" : "block";
+    EL.pw2.style.display = hasPass ? "none" : "block";
+    EL.unlockBtn.textContent = hasPass ? "Unlock" : "Save & Continue";
+    EL.gate.style.display = "grid";
+    EL.pw.value = ""; EL.pw2.value = ""; EL.pw.focus();
+    EL.unlockBtn.onclick = async () => {
+      const pass = EL.pw.value; if(!pass) return alert("Please enter a passphrase.");
+      const passHash = await sha256(pass); const d2 = loadData();
+      if(d2.pref.passHash){
+        if(passHash === d2.pref.passHash){ sessionStorage.setItem(SESSION_KEY, "1"); EL.gate.style.display = "none"; afterUnlock(); }
+        else alert("Incorrect passphrase.");
+      } else {
+        if(EL.pw2.value !== pass) return alert("Passphrases do not match.");
+        d2.pref.passHash = passHash; saveData(d2); sessionStorage.setItem(SESSION_KEY, "1"); EL.gate.style.display = "none"; afterUnlock(true);
+      }
+    };
+  }
+
+  // Onboarding
+  function showOnboard(){
+    EL.onboard.style.display = "grid";
+    EL.saveOnboardBtn.onclick = () => {
+      const name = EL.who.value.trim(); if(!name) return alert("Please enter your name.");
+      const d = loadData();
+      d.profile.name = name;
+      d.profile.nudgeTime = EL.nudgetime.value || null;
+      const auto = -new Date().getTimezoneOffset();
+      d.profile.tzOffsetMin = EL.tzoffset.value === "" ? auto : Number(EL.tzoffset.value);
+      d.profile.nicknamePending = true;
+      saveData(d);
+      EL.onboard.style.display = "none";
+      renderBanner();
+      addBot(`Got it — welcome, ${name}! Do you have a nickname you want me to use, or is “${name}” okay? (You can say “no nickname” or “call me &lt;nickname&gt;”.)`);
+    };
+  }
+
+  // Settings
+  EL.btnSettings.onclick = () => {
+    const d = loadData();
+    EL.s_name.value = d.profile.name || "";
+    EL.s_nick.value = d.profile.nickname || "";
+    EL.s_time.value = d.profile.nudgeTime || "";
+    EL.s_tz.value = d.profile.tzOffsetMin ?? "";
+    EL.settings.style.display = "grid";
+  };
+  EL.closeSettingsBtn.onclick = () => { EL.settings.style.display = "none"; };
+  EL.saveSettingsBtn.onclick = () => {
+    const d = loadData();
+    d.profile.name = EL.s_name.value.trim() || d.profile.name;
+    d.profile.nickname = EL.s_nick.value.trim() || null;
+    d.profile.nudgeTime = EL.s_time.value || null;
+    d.profile.tzOffsetMin = EL.s_tz.value === "" ? d.profile.tzOffsetMin : Number(EL.s_tz.value);
+    saveData(d);
+    EL.settings.style.display = "none";
+    renderBanner();
+    greetIfNeeded(true);
+  };
+
+  // Topbar buttons
+  EL.btnWipe.onclick = () => { if(confirm("Wipe profile, goals, and history?")) wipeAll(); };
+  EL.btnLock.onclick = () => { sessionStorage.removeItem(SESSION_KEY); showGate(); };
+
+  // Guardrails
+  const crisisKeywords = [
+    "kill myself","suicide","end my life","hurt myself","self harm","self-harm",
+    "overdose","take more pills","took too many","i want to die","i don't want to live"
+  ];
+  const medicalAdviceKeywords = [
+    "change my dose","increase my dose","decrease my dose","stop my medication",
+    "start medication","prescribe","contraindication","side effect","drug interaction",
+    "adjust my insulin","increase metformin","start semaglutide","ozempic dose"
+  ];
+  function checkGuardrails(text){
+    const t = text.toLowerCase();
+    if(crisisKeywords.some(k => t.includes(k))){
+      return { type:"crisis", msg:
+        "I’m really glad you told me. I can’t help with crises, but you deserve support right now. Please contact your primary care clinician immediately, or for urgent help call 911. In the U.S., call or text 988 for the Suicide & Crisis Lifeline." };
+    }
+    if(medicalAdviceKeywords.some(k => t.includes(k)) || /medicat(e|ion)|dose|prescription|pharmacy|drug/i.test(t)){
+      return { type:"medical", msg:
+        "I can’t give medical advice about medications. Please talk to your primary care clinician or pharmacist for guidance tailored to you." };
+    }
+    return null;
+  }
+
+  // Water module
+  function litersToOz(L){ return Math.round(L*33.814); }
+  const WATER_GUIDE_TEXT = {
+    us: `U.S. NASEM guidance (total fluids/day):
+• Men: ~3.7 L (≈ ${litersToOz(3.7)} oz / ~15.5 cups)
+• Women: ~2.7 L (≈ ${litersToOz(2.7)} oz / ~11.5 cups)
+Note: “Total fluids” includes all beverages (water, coffee/tea, etc.) plus moisture from foods (~20%).`,
+    eu: `EFSA (EU) guidance (total water/day):
+• Men: 2.5 L (≈ ${litersToOz(2.5)} oz)
+• Women: 2.0 L (≈ ${litersToOz(2.0)} oz)`
+  };
+  function ensureWaterDay(){
+    const d = loadData(); const today = todayISO(d.profile.tzOffsetMin);
+    if(d.water.lastDate !== today){ d.water.intakeTodayOz = 0; d.water.lastDate = today; saveData(d); }
+  }
+  function waterStatus(){
+    ensureWaterDay(); const d = loadData();
+    const t = d.water.targetOz ? `${d.water.targetOz} oz` : "not set";
+    return `Water today: ${d.water.intakeTodayOz} oz. Target: ${t}. (Try “water guide” or “set water target 90”.)`;
+  }
+  function addWater(oz){ ensureWaterDay(); const d = loadData(); d.water.intakeTodayOz += oz; saveData(d); return waterStatus(); }
+
+  // Sleep module
+  const SLEEP_SUMMARY = `Recommended sleep duration:
+• Adults 18–60: ≥7 h/night
+• 61–64: 7–9 h • 65+: 7–8 h
+• Teens 13–18: 8–10 h • Children 6–12: 9–12 h`;
+  const SLEEP_HYGIENE = [
+    "Consistency: same bed/wake time daily, even weekends.",
+    "Environment: dark, quiet, cool (65–68°F / 18–20°C).",
+    "Wind-down: reading, light stretch, or meditation.",
+    "Limit stimulants: avoid caffeine/nicotine and heavy meals near bedtime.",
+    "Screens: limit 30–60 min before bed.",
+    "Exercise helps; avoid vigorous workouts right before bed.",
+    "Bed = sleep & intimacy only — no work/scrolling.",
+    "Daytime: morning light; naps ≤ 20–30 min."
+  ];
+  const SLEEP_SIGNS = [
+    "Daytime fatigue despite time in bed.",
+    "Frequent awakenings.",
+    "Loud snoring/choking (possible apnea).",
+    "Trouble falling asleep >3 nights/week for 3+ months."
+  ];
+
+  // Recipes DB (expanded)
+  const RECIPES = [
+    // Beverages / soda swaps / mocktails
+    {id:"citrus-sparkler", title:"Citrus Sparkling Water", tags:["beverage","soda-swap","vegan","no-added-sugar","5-min","diabetic"],
+     ingredients:["Sparkling water (12 oz)","Orange/lemon slices","Lime","Mint"], steps:["Add citrus + mint","Top with sparkling water"], readyIn:"2 min"},
+    {id:"iced-tea-ginger", title:"Unsweet Iced Tea w/ Ginger", tags:["beverage","soda-swap","no-added-sugar","vegan","5-min","diabetic"],
+     ingredients:["Tea bag","1 tsp grated ginger","Ice","Lemon"], steps:["Steep","Chill","Finish with lemon"], readyIn:"5 min"},
+    {id:"cucumber-mint-water", title:"Cucumber Mint Water", tags:["beverage","soda-swap","no-added-sugar","vegan","5-min","diabetic"],
+     ingredients:["Water","Cucumber","Mint","Ice"], steps:["Combine & sip"], readyIn:"2 min"},
+    {id:"lime-spritz", title:"Lime Mint Spritzer", tags:["mocktail","social","soda-swap","no-added-sugar","5-min"],
+     ingredients:["Sparkling water","Fresh lime","Mint","Ice"], steps:["Muddle mint","Add ice + lime","Top with sparkling water"], readyIn:"3 min"},
+    {id:"ginger-fizz", title:"Ginger Fizz (no sugar)", tags:["mocktail","social","soda-swap","no-added-sugar","5-min"],
+     ingredients:["Sparkling water","Fresh ginger","Lemon wedge"], steps:["Add ginger + lemon","Top with sparkling water"], readyIn:"3 min"},
+    {id:"berry-smash", title:"Berry Smash (no added sugar)", tags:["mocktail","social","no-added-sugar","5-min"],
+     ingredients:["Frozen berries (few)","Sparkling water","Lemon"], steps:["Lightly mash berries","Top with sparkling water + lemon"], readyIn:"3 min"},
+
+    // Breakfast
+    {id:"protein-overnight-oats", title:"Protein Overnight Oats", tags:["breakfast","high-protein","fiber","no-added-sugar","make-ahead","diabetic"],
+     ingredients:["1/2 cup oats","1/2 cup milk/alt","1 tbsp chia","1/2 scoop plain protein","Cinnamon","Berries"],
+     steps:["Mix in jar","Chill overnight"], readyIn:"5 min (+overnight)"},
+    {id:"veggie-omelet", title:"Veggie Omelet", tags:["breakfast","high-protein","low-starch","15-min","diabetic"],
+     ingredients:["2–3 eggs","Spinach","Peppers","Onion","Feta (opt)"], steps:["Sauté veg","Add eggs","Fold"], readyIn:"10–12 min"},
+    {id:"egg-bites", title:"Sheet-Pan Egg Bites", tags:["breakfast","high-protein","meal-prep","diabetic"],
+     ingredients:["8 eggs","Chopped veg","Salt/pepper"], steps:["Whisk","Pour in tin","Bake 350°F 18–20 min"], readyIn:"25 min"},
+    {id:"greek-yogurt-parfait", title:"Greek Yogurt Parfait", tags:["breakfast","high-protein","no-added-sugar","diabetic"],
+     ingredients:["Plain Greek yogurt","Berries","1 tbsp nuts","Cinnamon"], steps:["Layer & serve"], readyIn:"3 min"},
+
+    // Quick lunches / dinners
+    {id:"turkey-lettuce-wraps", title:"Turkey Lettuce Wraps", tags:["quick-meal","low-starch","high-protein","15-min","diabetic"],
+     ingredients:["Ground turkey","Garlic/ginger","Romaine","Soy/tamari","Scallions"], steps:["Cook turkey","Season","Wrap"], readyIn:"15 min"},
+    {id:"chicken-veggie-stirfry", title:"Chicken & Veggie Stir-Fry", tags:["high-protein","low-starch","15-min","diabetic"],
+     ingredients:["Chicken","Mixed veg","Soy/tamari","Garlic","Sesame oil (tiny)"], steps:["Stir-fry","Season"], readyIn:"15 min"},
+    {id:"sheetpan-salmon", title:"Sheet-Pan Salmon & Veg", tags:["protein","sheet-pan","omega3","30-min","low-starch","diabetic"],
+     ingredients:["Salmon","Broccoli/carrots","Olive oil","Lemon","Salt/pepper"], steps:["Roast veg","Add salmon","Finish with lemon"], readyIn:"25–30 min"},
+    {id:"baked-cod-tomato-olive", title:"Baked Cod w/ Tomato & Olive", tags:["protein","sheet-pan","low-starch","30-min","diabetic"],
+     ingredients:["Cod","Cherry tomatoes","Olives","Olive oil","Herbs"], steps:["Top cod","Bake 400°F 12–15 min"], readyIn:"25–30 min"},
+    {id:"shrimp-cauliflower-rice", title:"Shrimp Cauli-‘Fried’ Rice", tags:["high-protein","low-starch","15-min","diabetic"],
+     ingredients:["Cauli rice","Shrimp","Mixed veg","Egg","Soy/tamari"], steps:["Stir-fry base","Add shrimp/veg","Stir in egg"], readyIn:"15 min"},
+    {id:"airfryer-chicken", title:"Air-Fryer Chicken Tenders", tags:["protein","fried-swap","airfryer","30-min","diabetic"],
+     ingredients:["Chicken tenders","Egg","Panko","Paprika","Oil spray"], steps:["Egg → panko","Air-fry 400°F 10–12 min"], readyIn:"20–25 min"},
+    {id:"chicken-bowl-quinoa", title:"Chicken Quinoa Power Bowl", tags:["protein","fiber","balanced","30-min","diabetic"],
+     ingredients:["Grilled chicken","Quinoa (small)","Greens","Veg","Vinaigrette"], steps:["Assemble bowl"], readyIn:"15 min"},
+    {id:"zoodle-turkey-bolo", title:"Zoodle Turkey Bolognese", tags:["low-starch","protein","30-min","diabetic"],
+     ingredients:["Zoodle","Lean turkey","Tomato sauce","Italian herbs"], steps:["Simmer sauce","Top zoodles"], readyIn:"25–30 min"},
+    {id:"cauli-taco-bowls", title:"Cauliflower Taco Bowls", tags:["low-starch","protein","30-min","diabetic"],
+     ingredients:["Cauli rice","Seasoned turkey/beans","Salsa","Lettuce","Avocado"], steps:["Sauté base","Top & serve"], readyIn:"20–25 min"},
+
+    // Vegetarian / fiber
+    {id:"black-bean-chili", title:"Black Bean Chili", tags:["vegetarian","fiber","no-added-sugar","30-min","diabetic"],
+     ingredients:["Black beans","Tomato","Onion","Chili spices"], steps:["Simmer 20–30 min"], readyIn:"30 min"},
+    {id:"lentil-soup", title:"Simple Lentil Soup", tags:["vegetarian","fiber","no-added-sugar","30-min","diabetic"],
+     ingredients:["Lentils","Broth","Carrot","Celery","Onion"], steps:["Simmer until tender"], readyIn:"30–35 min"},
+    {id:"crispy-chickpeas", title:"Crispy Chickpea Bowls", tags:["vegetarian","fried-swap","sheet-pan","fiber","30-min","diabetic"],
+     ingredients:["Chickpeas","Veg","Olive oil","Seasoning","Grain (small)"], steps:["Roast 425°F 20 min","Serve"], readyIn:"25–30 min"},
+    {id:"quinoa-salad", title:"Quinoa Power Salad", tags:["vegetarian","fiber","balanced","15-min","diabetic"],
+     ingredients:["Cooked quinoa","Chopped veg","Chickpeas","Lemon vinaigrette"], steps:["Toss & serve"], readyIn:"15 min"},
+
+    // Snacks / dips
+    {id:"yogurt-ranch", title:"Greek Yogurt Ranch Dip", tags:["snack","high-protein","5-min","diabetic"],
+     ingredients:["Plain Greek yogurt","Ranch seasoning/herbs","Veg sticks"], steps:["Stir & dip"], readyIn:"5 min"},
+    {id:"hummus-veggies", title:"Hummus + Veg Platter", tags:["snack","vegan","fiber","diabetic"],
+     ingredients:["Hummus","Carrots","Cucumber","Peppers"], steps:["Plate & snack"], readyIn:"3 min"},
+    {id:"cottage-berry-bowl", title:"Cottage Cheese Berry Bowl", tags:["snack","high-protein","no-added-sugar","diabetic"],
+     ingredients:["Cottage cheese","Berries","Cinnamon"], steps:["Combine & serve"], readyIn:"2 min"},
+
+    // Light desserts (no added sugar) & banana bread (light)
+    {id:"chia-pudding", title:"Vanilla Chia Pudding", tags:["dessert","no-added-sugar","fiber","make-ahead","diabetic"],
+     ingredients:["Milk/alt","Chia seeds","Vanilla","Cinnamon"], steps:["Mix","Chill"], readyIn:"5 min (+chill)"},
+    {id:"baked-cinnamon-apples", title:"Cinnamon Baked Apples", tags:["dessert","no-added-sugar","diabetic"],
+     ingredients:["Apples","Cinnamon","Lemon"], steps:["Bake 375°F 15–20 min"], readyIn:"20 min"},
+    {id:"banana-bread-light", title:"Whole-Wheat Banana Nut Bread (Light)", tags:["dessert","baking","banana-bread","no-added-sugar","fiber"],
+     ingredients:[
+       "3 very ripe bananas (≈300 g, mashed)","2 eggs","1/3 cup plain Greek yogurt","2 tbsp olive oil (or melted butter)",
+       "1 tsp vanilla","1 1/2 cups whole-wheat flour","1 tsp baking soda","1 tsp cinnamon","1/4 tsp salt",
+       "1/3 cup chopped walnuts","Optional: 2–3 tbsp brown sugar OR 2–3 pitted dates blended into bananas"
+     ],
+     steps:[
+       "Heat oven to 350°F (175°C). Line/grease 8.5×4.5 in loaf pan.",
+       "Whisk wet: bananas, eggs, yogurt, oil, vanilla.",
+       "Fold in dry: flour, baking soda, cinnamon, salt. Don’t overmix.",
+       "Stir in walnuts (and optional sweetener).",
+       "Bake 45–55 min until a toothpick has a few moist crumbs.",
+       "Cool 10 min in pan, then on rack. (Muffins: 18–22 min.)"
+     ],
+     readyIn:"50–55 min"},
+
+    // General quick meals (keep)
+    {id:"egg-cauli-rice", title:"Egg Fried *Cauli* Rice", tags:["low-starch","15-min","vegetarian","diabetic"],
+     ingredients:["Cauli rice","Eggs","Mixed veg","Soy/tamari"], steps:["Scramble eggs","Stir-fry cauli","Combine"], readyIn:"15 min"},
+    {id:"pita-pizza", title:"Pita Pan Pizza", tags:["quick-meal","15-min","kid-friendly"],
+     ingredients:["Whole-grain pita","Tomato sauce","Mozzarella","Veg"], steps:["Assemble","Bake 6–8 min"], readyIn:"10–15 min"}
+  ];
+
+  function pickRecipes(matchTags=[], n=3){
+    const tset = matchTags.map(s => s.toLowerCase());
+    let pool = RECIPES;
+    if(tset.length){
+      pool = pool.filter(r => tset.every(t => r.tags.some(x => x.toLowerCase().includes(t))));
+    }
+    if(pool.length === 0) pool = RECIPES;
+    const out = []; const used = new Set();
+    while(out.length < Math.min(n, pool.length)){
+      const i = Math.floor(Math.random()*pool.length);
+      if(!used.has(i)){ used.add(i); out.push(pool[i]); }
+    }
+    return out;
+  }
+  function formatRecipe(r){
+    return `• ${r.title} (${r.readyIn})
+  Ingredients: ${r.ingredients.join(", ")}
+  Steps: ${r.steps.join(" → ")}`;
+  }
+
+  // Goals
+  function addGoal(text){ const d = loadData(); d.goals.push({ id:String(Date.now()), text, createdISO:new Date().toISOString(), done:false }); saveData(d); }
+  function listGoals(){ const d = loadData(); if(d.goals.length===0) return "No saved goals yet."; return d.goals.map((g,i)=>`${i+1}. ${g.done?"✅":"⬜️"} ${g.text}`).join("\n"); }
+  function completeGoalByIndex(idx){ const d = loadData(); if(idx<1||idx>d.goals.length) return false; d.goals[idx-1].done=true; saveData(d); return true; }
+
+  // Emotion detection
+  const EMOTION_TAGS = {
+    stress: /(stress|stressed|anxious|anxiety|overwhelm|overwhelmed|panic|worried|tense)/i,
+    bored: /(bored|boring|nothing to do)/i,
+    lonely: /(lonely|alone|isolated)/i,
+    sad: /(sad|down|blue|depress(ed)?)/i,
+    angry: /(angry|mad|irritated|annoyed|frustrat(ed)?)/i,
+    guilty: /(guilt|guilty|ashamed|shame|embarrass|loser|looser|regret|regretted)/i,
+    tired: /(tired|exhausted|fatigue|drained|worn out)/i,
+    craving: /(crav(e|ing)|urge|tempt(ed|ation)|snack attack)/i
+  };
+  const COPING = {
+    stress: [
+      "Box breathing: inhale 4s, hold 4s, exhale 4s, hold 4s × 4 rounds.",
+      "5–10 min walk or stretch break.",
+      "2-column list: “In my control / Not in my control”. Do one small action."
+    ],
+    bored: [
+      "2-minute tidy or one tiny chore.",
+      "Flavorful zero-cal beverage + chew gum.",
+      "10-minute activity: podcast walk, quick game, garden."
+    ],
+    lonely: [
+      "Send a 2-line text to someone you like.",
+      "Plan a short check-in call; put it on your calendar.",
+      "Join a group/chat aligned with your goal."
+    ],
+    sad: [
+      "Self-kind note: “This is hard, and I can take small steps.”",
+      "Very easy meal: yogurt + fruit; eggs + toast; soup + salad kit.",
+      "Light + fresh air: brief walk outside."
+    ],
+    angry: [
+      "Name it privately (“I’m feeling angry about ___”).",
+      "Movement burst: stairs or brisk 5 minutes.",
+      "Delay decisions 20 minutes; revisit after cooling off."
+    ],
+    guilty: [
+      "Reframe: notice the slip → choose the next right step.",
+      "If-Then: “If I overeat at lunch, then dinner = veggie-forward plate.”",
+      "Talk to yourself like you would to a close friend."
+    ],
+    tired: [
+      "Water + short stretch; step into daylight.",
+      "10–20 min power nap (set an alarm).",
+      "Gentle walk or body scan to reset."
+    ],
+    craving: [
+      "10-minute delay + water; most urges peak and fade.",
+      "Structured snack: Greek yogurt + fruit; nuts + apple.",
+      "If-Then: “If craving after dinner, then tea + berries.”"
+    ]
+  };
+  function detectEmotions(text){ const hits=[]; for(const [tag,rx] of Object.entries(EMOTION_TAGS)){ if(rx.test(text)) hits.push(tag); } return hits; }
+  function recordEmotions(tags){
+    if(!tags.length) return; const d = loadData(); const now = Date.now();
+    tags.forEach(tag => { d.emotions.recent.push({tag,ts:now}); d.emotions.counts[tag]=(d.emotions.counts[tag]||0)+1; d.emotions.lastTag=tag; });
+    if(d.emotions.recent.length>200) d.emotions.recent = d.emotions.recent.slice(-200);
+    saveData(d);
+  }
+  function empathyReply(name, tag){
+    const now = Date.now(); const d = loadData();
+    const repeats = d.emotions.recent.filter(e => now - e.ts < 2*60*60*1000 && e.tag===tag).length;
+    const menu = COPING[tag] || [];
+    let out = `${name}, thanks for saying that — ${tag} is tough. Let’s pick a small step you can win today.\n`;
+    out += `Try one now:\n• ${menu[0]}\n• ${menu[1]}\n• ${menu[2] || "Take 10 slow breaths and sip water."}`;
+    if(tag==="craving"){
+      const picks = pickRecipes(["snack"], 2).map(formatRecipe).join("\n");
+      out += `\n\nSnack ideas:\n${picks}`;
+    }
+    if(repeats >= 3){
+      out += `\n\nYou’ve mentioned this a few times recently. Stronger plan:\n• If-Then: “If ${tag} hits tonight, then 4 rounds box breathing + tea.”\n• Reduce friction (set tea kit out now).\n• Ask for support: text someone you trust.`;
+    }
+    return out;
+  }
+
+  // Slip + social drinks + diabetes + bad sleep helpers
+  function slipReply(name, t){
+    addGoal("Fast-food repair: drink 12–16 oz water now, 10-min walk, veggie-forward next meal");
+    const fastLike = /(fast[-\s]?food|junk[-\s]?food|fried|fries|wings)/i.test(t);
+    const quickPlan = `**Tiny repair now**
+• Drink 12–16 oz water.
+• Take a 5–10 minute walk or stretch.
+• Next meal: half veggies, lean protein, high-fiber carb.`;
+    const alt = fastLike
+      ? `**Next time (drive-thru ideas)**
+• Choose grilled/baked; share fries or add a side salad.
+• “First 5 hot bites, then pause.”
+• Unsweet tea or sparkling water instead of soda.`
+      : `**Sweet snack swaps**
+• Greek yogurt + fruit; nuts + apple; cinnamon tea.`;
+    return `${name}, don’t worry — one meal doesn’t define your day. We’ll figure out an alternate plan now.\n\n${quickPlan}\n\n${alt}\n\nHow are you feeling about it right now?`;
+  }
+  function socialBeveragePlan(name){
+    return `${name}, you can absolutely enjoy time with friends and still support your goals. Pick one simple plan:
+
+A) **One & done**: enjoy 1 drink (beer/wine), then switch to sparkling water + lime.
+B) **Zero-proof tonight**: mocktail or seltzer + citrus (looks like a drink, no sugar/alcohol).
+C) **If soda**: choose diet/zero sugar or go sparkling water + citrus; avoid bottomless refills.
+
+**Easy tactics**
+• Alternate: drink → water → drink.
+• Tall glass, lots of ice; sip slow.
+• Eat protein/veg before/with the first drink.
+• Decide your number *before* you arrive (e.g., “max 1”); tell a friend.
+
+Want 0-sugar “social” recipes? Say: recipes mocktail.
+
+How are you feeling about tonight? Want help picking A, B, or C?`;
+  }
+  function diabetesPlan(name){
+    addGoal("Diabetes-friendly plate: 1/2 non-starchy veg, 1/4 lean protein, 1/4 high-fiber carb; water first");
+    const plan = `**Starter approach (coaching — not medical advice):**
+• Plate method: 1/2 non-starchy veg; 1/4 lean protein; 1/4 high-fiber carbs (beans/lentils, quinoa/brown rice, whole-grain pita).
+• Pair carbs with protein/fat; favor fiber (beans, veggies, chia).
+• Drinks: water, unsweet tea/coffee; avoid sugary beverages; keep fruit juice tiny or skip.
+• Convenience: pre-cut veg, Greek yogurt, nuts; repeatable simple breakfast/lunch.
+• Weight-loss angle: protein + veggies first, then a modest portion of high-fiber carbs.
+
+⚠️ I can’t give medical advice. If you use insulin or medicines that can cause lows, talk to your clinician about any diet changes.`;
+    const picks = pickRecipes(["low-starch","high-protein","no-added-sugar","fiber","diabetic"], 3).map(formatRecipe).join("\n");
+    return `${name}, here’s a diabetes- and weight-loss-friendly plan:\n${plan}\n\n**Recipe ideas**\n${picks}\n\nWant more? Try: “recipes diabetic”, “recipes low-starch”, or “recipes protein”.`;
+  }
+  function sleepBadNightReply(name){
+    addGoal("Bad-night recovery: 12 oz water now, 10-min daylight walk, 20-min nap before 3pm, early wind-down tonight");
+    return `${name}, I’m sorry last night was rough. You’re not alone—let’s steady today and set up a better night.
+
+**Right now**
+• 12–16 oz water.
+• 5–10 minutes of daylight (brief walk if possible).
+• Simple protein-first meal (e.g., eggs or Greek yogurt + fruit).
+
+**Today**
+• Keep caffeine modest; avoid after ~2pm.
+• If needed, a 10–20 min nap before ~3pm (set an alarm).
+
+**Tonight reset**
+• Consistent bedtime; screens off 60 min prior.
+• Cool, dark, quiet room.
+• If awake >20 min, get up for a calm activity and try again.
+
+Want more, say “sleep tips” or set “set sleep goal 7.5”.`;
+  }
+
+  // Small talk
+  function rand(a){ return a[Math.floor(Math.random()*a.length)]; }
+  const JOKES = [
+    "Why did the scarecrow win an award? He was out standing in his field.",
+    "I tried to catch fog yesterday. Mist.",
+    "I told my shoes a joke. They said it was a loafer."
+  ];
+  const reHowAreYou = /(how (are|r) (you|u)|how(?:'s| is) it going|what'?s up|sup|wyd)/i;
+  const reBored = /\b(i'?m\s*bored|bored)\b/i;
+  const reChatty = /(let'?s (chat|talk)|talk to me|hang out|just chilling|nothing much|shoot the breeze)/i;
+  const reJoke = /\b(joke|make me laugh|tell me something funny)\b/i;
+  const reThanks = /\b(thanks|thank you|appreciate it|appreciated)\b/i;
+  function smallTalkReply(name, t){
+    if(reHowAreYou.test(t)) return `Doing well, ${name}! Hydrated and ready. How are *you* feeling today? Anything I can help with — or just want to chat?`;
+    if(reBored.test(t)) return `${name}, want a mini quest? 10-minute walk, refill your water, or tidy one tiny spot. Or we can just chat — what’s on your mind?`;
+    if(reJoke.test(t)) return `${name}, ${rand(JOKES)} 😄`;
+    if(reThanks.test(t)) return `You’re welcome, ${name}! I’m here for you.`;
+    if(reChatty.test(t)) return `Love that, ${name}. Tell me something random about your day, or ask me for a tiny win we can grab right now.`;
+    return `${name}, I’m here — want to share what today’s been like, or should we pick a tiny win together?`;
+  }
+
+  // Intents / regex
+  const reHelp = /^\s*(help|\?)\s*$/i;
+  const reShowGoals = /^(show|list)\s+goals?$/i;
+  const reAddGoal = /^add\s+goal\s+(.+)/i;
+  const reDoneGoal = /^done\s+(\d+)/i;
+  const reRecipes = /^recipes?(?:\s+(.*))?$/i;
+
+  const reWaterGuide = /^water\s+guide(?:\s+(us|eu))?$/i;
+  const reSetWaterTarget = /^set\s+water\s+target\s+(\d+)\s*(oz)?$/i;
+  const reWaterAdd = /^water\s+(add|drink)\s+(\d+)\s*(oz)?$/i;
+  const reWaterStatus = /^water\s+(status|check)$/i;
+  const reWaterReset = /^water\s+reset$/i;
+
+  const reSleepTips = /^sleep\s+(tips|hygiene)$/i;
+  const reSleepSigns = /^sleep\s+signs$/i;
+  const reSetSleepGoal = /^set\s+sleep\s+goal\s+(\d+(\.\d+)?)$/i;
+
+  const reSoda = /(give up|quit|cut).*(soda|pop|soft\s*drink)|\b(soda|cola|coke|pepsi|sprite|dr\s*pepper)\b/i;
+  const reFried = /(fried foods?|french\s*fries|wings|give up fried|cut fried|fast\s*food|junk\s*food)/i;
+  const reSugar = /(cut sugar|too much dessert|sweets|candy|cookies|ice\s*cream)/i;
+
+  const reNutrition = /(nutri|diet|meal|eat|food)/i;
+  const reMovement = /(walk|move|exercise|activity|workout)/i;
+  const reSleepTopic = /(sleep|insomnia|tired)/i;
+  const reMindset = /(stress|motivat|mind|habit|goal)/i;
+  const reHello = /(hello|hi|hey)\b/i;
+
+  const reSlip = /(fast[-\s]?food|junk[-\s]?food|drive[-\s]?thru|overeat|over[-\s]?ate|overate|binge(d)?|i (messed|screwed) up|i (cheat|cheated))/i;
+  const reSocialDrinks = /((hang[-\s]?out|party|bar|with (my )?friends).*(beer|wine|soda|cocktail|mocktail))|((beer|wine|cocktail|mocktail|soda).*(friends|bar|party|out))/i;
+  const reDiabetes = /(diabet(ic|es)|pre[-\s]?diabet(ic|es)|blood\s*sugar)/i;
+  const reBadSleep = /(slept?\s*(terribly|horribly|bad(ly)?)|poor\s+sleep|bad\s+night|didn'?t\s+sleep|no\s+sleep|awake\s+all\s+night|insomnia\s+last\s+night|only\s+\d+\s*hours\s+sleep)/i;
+
+  const reNoNickname = /(no nickname|name is (ok|okay|fine)|use my (name|real name)|keep (my )?name)/i;
+  const reSetNicknameCmd = /^(call me|set nickname|my nickname is)\s+["']?([\w\s\-]{1,32})["']?$/i;
+
+  // Core coach basics
+  const COACH = {
+    basics: {
+      nutrition: [
+        "Try the 50/25/25 plate: half veggies, a quarter lean protein, a quarter high-fiber carbs.",
+        "Keep easy wins on hand: pre-cut veggies, fruit, Greek yogurt, nuts."
+      ],
+      movement: [
+        "Try ‘movement snacks’: 5–10 minutes, 2–3× per day. Walk, stretch, or stairs.",
+        "Pair activity with a cue you already do: after coffee, take a 10-minute walk."
+      ],
+      sleep: [
+        "Keep a regular sleep window; dim lights 60 minutes before bed.",
+        "If you can’t sleep after ~20 minutes, get up for a calm activity, then try again."
+      ],
+      mindset: [
+        "Talk to yourself like a good friend—firm, kind, specific.",
+        "Set up your space for success: water bottle visible, fruit bowl, shoes by the door."
+      ]
+    },
+    sodaPlan(name){
+      addGoal("Soda step-down: lunch swap; weekend 1 can; water first");
+      const plan = `**Soda step-down**
+• Weekdays: swap soda for sparkling water/iced tea at lunch.
+• Weekends: limit to 1 can/day; keep it out of sight until that time.
+• Anchor: 12 oz water first.
+• Track: a checkmark per soda-free meal.`;
+      const recipes = pickRecipes(["soda-swap"], 3).map(formatRecipe).join("\n");
+      return `${name}, great goal. I saved this plan to your goals:\n${plan}\n\n**Swap ideas**\n${recipes}`;
+    },
+    friedPlan(name){
+      addGoal("Fried-food swap: air-fryer at home; share fries out; half-plate veggies");
+      const plan = `**Fried-food swap**
+• At home: air-fryer/oven (panko + oil spray).
+• Out: choose grilled/baked; or share fries (first 5 hot bites, then stop).
+• Plate: half veggies for volume.`;
+      const recipes = pickRecipes(["fried-swap"], 3).map(formatRecipe).join("\n");
+      return `${name}, we’ll keep the crunch with fewer oils. Saved to your goals:\n${plan}\n\n**Crunchy alternatives**\n${recipes}`;
+    },
+    sugarPlan(name){
+      addGoal("Dessert boundary: tea + fruit/yogurt after dinner, 4 nights/week");
+      return `${name}, try a sweet routine after dinner: fruit or Greek yogurt + tea. Keep desserts for 2–3 chosen nights. I saved this as a goal. Ask “recipes dessert” for ideas.`;
+    }
+  };
+
+  // Recipes command
+  function handleRecipesCommand(name, match){
+    const query = (match[1] || "").toLowerCase().trim();
+    const tags = [];
+    if(query.includes("diabet")) tags.push("diabetic","low-starch","no-added-sugar","high-protein","fiber");
+    if(query.includes("mocktail")) tags.push("mocktail","no-added-sugar","social");
+    if(query.includes("soda")) tags.push("soda-swap");
+    if(query.includes("vegan")) tags.push("vegan");
+    if(query.includes("air") || query.includes("fried")) tags.push("fried-swap");
+    if(query.includes("protein") || query.includes("chicken") || query.includes("salmon") || query.includes("turkey") || query.includes("shrimp")) tags.push("high-protein");
+    if(query.includes("snack")) tags.push("snack");
+    if(query.includes("breakfast") || query.includes("oats") || query.includes("omelet")) tags.push("breakfast");
+    let pool = RECIPES;
+    if(tags.length){
+      pool = pool.filter(r => tags.every(t => r.tags.some(x => x.toLowerCase().includes(t))));
+    } else if(query){
+      pool = pool.filter(r =>
+        r.title.toLowerCase().includes(query) ||
+        r.ingredients.join(" ").toLowerCase().includes(query) ||
+        r.tags.some(t => t.toLowerCase().includes(query))
+      );
+    }
+    if(pool.length === 0) pool = RECIPES;
+    const picks = []; const used = new Set();
+    while(picks.length < Math.min(3, pool.length)){
+      const i = Math.floor(Math.random()*pool.length);
+      if(!used.has(i)){ used.add(i); picks.push(pool[i]); }
+    }
+    const formatted = picks.map(formatRecipe).join("\n");
+    return `${name}, recipes for “${query || "general"}”:\n${formatted}`;
+  }
+
+  // Chat routing
+  function respond(name, text){
+    const t = text.toLowerCase().trim();
+
+    // Nickname flow first
+    const dNick = loadData();
+    if(dNick.profile.nicknamePending){
+      if(reNoNickname.test(t)){
+        dNick.profile.nickname = null; dNick.profile.nicknamePending = false; saveData(dNick);
+        finishNicknameSetup(); return "";
+      }
+      const mNick = t.match(reSetNicknameCmd);
+      if(mNick){ dNick.profile.nickname = mNick[2].trim(); dNick.profile.nicknamePending = false; saveData(dNick); finishNicknameSetup(); return ""; }
+      if(/^[\w\-]{2,20}$/.test(t)){ dNick.profile.nickname = t; dNick.profile.nicknamePending = false; saveData(dNick); finishNicknameSetup(); return ""; }
+      return `I didn’t catch that — want a nickname, or should I stick with “${dNick.profile.name}”? (Try “call me &lt;nickname&gt;” or “no nickname”.)`;
+    }
+
+    // Quick commands
+    if(reHelp.test(t)){
+      return `${name}, quick help:
+• Plans: “give up soda”, “cut fried foods”, “cut sugar”.
+• Recipes: “recipes chicken”, “recipes soda”, “recipes vegan”, “recipes diabetic”, “recipes mocktail”.
+• Goals: “add goal &lt;text&gt;”, “show goals”, “done 1”.
+• Water: “water guide [us|eu]”, “set water target 90”, “water add 12”, “water status”.
+• Sleep: “sleep tips”, “sleep signs”, “set sleep goal 7.5”.
+• Emotions: tell me how you feel (e.g., “I’m stressed/bored/craving”).`;
+    }
+    if(reShowGoals.test(t)) return `${name}, your goals:\n${listGoals()}`;
+    const mAdd = t.match(reAddGoal); if(mAdd){ addGoal(mAdd[1]); return `${name}, saved: “${mAdd[1]}”.`; }
+    const mDone = t.match(reDoneGoal); if(mDone){ const ok=completeGoalByIndex(parseInt(mDone[1],10)); return ok?`${name}, marked goal ${mDone[1]} done.`:`${name}, I couldn’t find goal ${mDone[1]}.`; }
+    const mRec = t.match(reRecipes); if(mRec) return handleRecipesCommand(name, mRec);
+
+    // Water
+    if(reWaterGuide.test(t)){ const m=t.match(reWaterGuide); const which=(m&&m[1])?m[1]:(loadData().water.guide||"us"); const d=loadData(); d.water.guide=which; saveData(d); return `${name}, ${WATER_GUIDE_TEXT[which]}\nRule of thumb: “8×8” (64 oz) is simple but can be too low for many adults. Set your personal target with “set water target 90”.`; }
+    if(reSetWaterTarget.test(t)){ const oz=parseInt(t.match(reSetWaterTarget)[1],10); const d=loadData(); d.water.targetOz=oz; saveData(d); return `${name}, water target set to ${oz} oz/day. Use “water add 12” and “water status”.`; }
+    if(reWaterAdd.test(t)){ const oz=parseInt(t.match(reWaterAdd)[2],10); return `${name}, ${addWater(oz)}`; }
+    if(reWaterStatus.test(t)) return `${name}, ${waterStatus()}`;
+    if(reWaterReset.test(t)){ const d=loadData(); d.water.intakeTodayOz=0; d.water.lastDate=null; saveData(d); return `${name}, water log reset.`; }
+
+    // Sleep
+    if(reSleepTips.test(t)) return `${name}, sleep hygiene:\n• ${SLEEP_HYGIENE.join("\n• ")}\n\n${SLEEP_SUMMARY}`;
+    if(reSleepSigns.test(t)) return `${name}, signs to watch:\n• ${SLEEP_SIGNS.join("\n• ")}\n\n${SLEEP_SUMMARY}`;
+    if(reSetSleepGoal.test(t)){ const hours=parseFloat(t.match(reSetSleepGoal)[1]); const d=loadData(); d.sleep.targetHours=hours; saveData(d); return `${name}, sleep goal set to ${hours} hours/night. Try a consistent wind-down 30–60 minutes before bed.`; }
+
+    // Guardrails
+    const safety = checkGuardrails(t); if(safety) return safety.msg;
+
+    // Social drinks / diabetes / slips / bad-sleep
+    if(reSocialDrinks.test(t)) return socialBeveragePlan(name);
+    if(reDiabetes.test(t)) return diabetesPlan(name);
+    if(reSlip.test(t)) return slipReply(name, t);
+    if(reBadSleep.test(t)) return sleepBadNightReply(name);
+
+    // Small talk
+    if(reHowAreYou.test(t) || reBored.test(t) || reChatty.test(t) || reJoke.test(t) || reThanks.test(t)) return smallTalkReply(name, t);
+
+    // Emotions
+    const emo = detectEmotions(t); if(emo.length){ recordEmotions(emo); return empathyReply(name, emo[0]); }
+
+    // Plans & topics
+    if(reSoda.test(t)) return COACH.sodaPlan(name);
+    if(reFried.test(t)) return COACH.friedPlan(name);
+    if(reSugar.test(t)) return COACH.sugarPlan(name);
+
+    if(reNutrition.test(t)) return `${name}, two nutrition nudges:\n• ${COACH.basics.nutrition[0]}\n• ${COACH.basics.nutrition[1]}\n\nAsk for recipes: “recipes lunch” or “recipes vegan”.`;
+    if(reMovement.test(t))  return `${name}, try these:\n• ${COACH.basics.movement[0]}\n• ${COACH.basics.movement[1]}`;
+    if(reSleepTopic.test(t)) return `${name}, sleep supports your goals:\n• ${COACH.basics.sleep[0]}\n• ${COACH.basics.sleep[1]}\n\n${SLEEP_SUMMARY}`;
+    if(reMindset.test(t))   return `${name}, mindset nudges:\n• ${COACH.basics.mindset[0]}\n• ${COACH.basics.mindset[1]}`;
+
+    if(reHello.test(t)) return `Hi ${name}! What’s one small win you’d like this week? Try “give up soda”, “cut fried foods”, or “recipes chicken”.`;
+    return `${name}, I’m here for habit coaching with recipes, water & sleep support, emotional tools, and friendly chat. Type “help” for commands.`;
+  }
+
+  // Nickname finish helper
+  function finishNicknameSetup(){
+    const n = firstName();
+    addBot(`Awesome — I’ll call you ${n}. How are you feeling today, ${n}? What can I do to help you today?`);
+  }
+
+  // Nudge timer
+  function tickNudge(){
+    const d = loadData(); if(!d.profile.nudgeTime) return; ensureWaterDay();
+    const now = new Date(); const sys = -now.getTimezoneOffset(); const tz = d.profile.tzOffsetMin ?? sys;
+    const local = new Date(now.getTime() + (tz - sys)*60000);
+    const hh = String(local.getHours()).padStart(2,"0"), mm = String(local.getMinutes()).padStart(2,"0");
+    const today = local.toISOString().slice(0,10);
+    if(`${hh}:${mm}` === d.profile.nudgeTime && d.lastNudgeISO !== today){
+      let extra = "";
+      if(d.water.targetOz && d.water.intakeTodayOz < d.water.targetOz*0.4){ extra = ` Also, you’re at ${d.water.intakeTodayOz} oz vs ${d.water.targetOz} oz — sip 8–12 oz now?`; }
+      addBot(`${firstName()}, quick nudge — what’s one 10-minute win you can do now?${extra}`);
+      d.lastNudgeISO = today; saveData(d);
+    }
+  }
+  setInterval(tickNudge, 30000);
+
+  // Chat loop
+  EL.send.onclick = onSend;
+  EL.input.addEventListener("keydown", e => { if(e.key === "Enter") onSend(); });
+  function onSend(){
+    const raw = EL.input.value; const txt = raw.trim(); if(!txt) return;
+    EL.input.value = ""; addYou(txt); const reply = respond(firstName(), txt); addBot(reply);
+  }
+
+  // Greetings
+  function initialGreeting(){
+    renderBanner();
+    const n = firstName();
+    addBot(`Hello ${n}! I’m your micronudger coach. I’ll remember our chats unless you tap Wipe. I can’t give medical advice, but I can help with steady habit nudges, recipes, emotional tools, water tracking, and sleep tips.`);
+    addBot(`How are you feeling today, ${n}? What can I do to help you today?`);
+  }
+  function greetIfNeeded(force=false){ renderBanner(); if(force) return; }
+
+  // Photo recognition (TFJS coco-ssd)
+  let cocoModel = null, camStream = null;
+  const FOOD_CLASSES = new Set(["apple","banana","orange","broccoli","carrot","pizza","donut","cake","hot dog","sandwich","bottle","cup"]);
+  const CLASS_TO_TAGS = {
+    apple:["snack","vegan"],
+    banana:["snack","vegan","breakfast","banana-bread","dessert"],
+    orange:["snack","vegan"],
+    broccoli:["vegetarian","protein"],
+    carrot:["vegetarian","snack"],
+    pizza:["fried-swap"],
+    donut:["snack","dessert"],
+    cake:["dessert"],
+    "hot dog":["high-protein"],
+    sandwich:["high-protein"],
+    bottle:["soda-swap"],
+    cup:[]
+  };
+  async function ensureModel(){
+    if(cocoModel) return cocoModel;
+    EL.photoStatus.textContent = "Loading food detector…";
+    cocoModel = await cocoSsd.load();
+    EL.photoStatus.textContent = "Detector ready.";
+    return cocoModel;
+  }
+  async function startCamera(){
+    try{
+      camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" }, audio:false });
+      EL.cam.srcObject = camStream; EL.cam.classList.remove("hidden"); EL.frame.classList.add("hidden");
+      EL.photoStatus.textContent = "Camera on. Point at food and tap Capture.";
+    }catch(e){
+      EL.photoStatus.textContent = "Camera not available. You can upload a photo instead.";
+    }
+  }
+  function stopCamera(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } }
+  function drawToCanvasFromVideo(){
+    const w = EL.cam.videoWidth || 640, h = EL.cam.videoHeight || 480;
+    EL.frame.width = w; EL.frame.height = h;
+    const ctx = EL.frame.getContext("2d"); ctx.drawImage(EL.cam, 0,0,w,h);
+    EL.cam.classList.add("hidden"); EL.frame.classList.remove("hidden");
+    EL.photoStatus.textContent = "Captured frame. Ready to detect.";
+  }
+  function drawToCanvasFromFile(file){
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      const maxW=900, scale=Math.min(1, maxW/img.width); const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+      EL.frame.width = w; EL.frame.height = h;
+      const ctx = EL.frame.getContext("2d"); ctx.drawImage(img, 0,0,w,h);
+      EL.cam.classList.add("hidden"); EL.frame.classList.remove("hidden");
+      EL.photoStatus.textContent = "Image loaded. Ready to detect."; URL.revokeObjectURL(url);
+    }; img.src = url;
+  }
+  async function detectFoods(){
+    await ensureModel();
+    const preds = await cocoModel.detect(EL.frame);
+    const items = preds.filter(p => p.score >= .5 && FOOD_CLASSES.has(p.class)).map(p => p.class);
+    const unique = [...new Set(items)];
+    const name = firstName();
+    if(unique.length === 0){ addBot(`${name}, I couldn’t confidently spot foods. Try a clearer photo, or ask for recipes (e.g., “recipes banana bread”).`); return; }
+    const hasBanana = unique.includes("banana");
+    let picks;
+    if(hasBanana){
+      const bb = RECIPES.filter(r => r.tags.includes("banana-bread"));
+      const light = pickRecipes(["no-added-sugar","fiber"], 2);
+      picks = [...(bb.length ? [bb[0]] : []), ...light];
+    } else {
+      const tags = unique.flatMap(c => CLASS_TO_TAGS[c] || []);
+      picks = pickRecipes(tags, 3);
+    }
+    const formatted = picks.map(formatRecipe).join("\n");
+    addBot(`${name}, I see: ${unique.join(", ")}.\nHere are healthy ideas based on that:\n${formatted}\n\nWant a different spin? Say “recipes mocktail”, “recipes diabetic”, or “recipes chicken”.`);
+  }
+
+  // Photo UI wiring
+  EL.btnPhoto.onclick = () => { EL.photoModal.style.display = "grid"; EL.photoStatus.textContent = "Tip: use good light and fill the frame with the food."; ensureModel().catch(()=>{ EL.photoStatus.textContent = "Detector failed to load."; }); };
+  EL.startCam.onclick = startCamera;
+  EL.snap.onclick = () => { if(!camStream){ EL.photoStatus.textContent = "Camera is off. Tap Start Camera or upload an image."; return; } if(EL.cam.readyState>=2) drawToCanvasFromVideo(); else EL.photoStatus.textContent = "Camera warming up…"; };
+  EL.upload.onchange = (e)=>{ const f=e.target.files&&e.target.files[0]; if(f) drawToCanvasFromFile(f); };
+  EL.detect.onclick = () => { if(EL.frame.classList.contains("hidden")){ EL.photoStatus.textContent = "Take or upload a photo first."; return; } detectFoods().catch(()=>{ EL.photoStatus.textContent = "Detection error. Try another photo."; }); };
+  EL.closePhoto.onclick = () => { stopCamera(); EL.photoModal.style.display="none"; EL.photoStatus.textContent=""; EL.cam.removeAttribute("srcObject"); };
+
+  // Init / Boot
+  function afterUnlock(isNew=false){
+    EL.gate.style.display = "none";
+    sessionStorage.setItem(SESSION_KEY, "1");
+    const d = loadData();
+    if(isNew || !d.profile.name){ showOnboard(); }
+    else { renderHistory(); greetIfNeeded(); renderBanner(); if(d.profile.nicknamePending){ addBot(`Do you have a nickname you want me to use, or is “${d.profile.name}” okay?`);} }
+  }
+  (function init(){
+    const unlocked = sessionStorage.getItem(SESSION_KEY) === "1";
+    const d = loadData();
+    // show gate if no pass or locked
+    if(!d.pref.passHash || !unlocked){ showGate(); }
+    else { afterUnlock(); }
+  })();
+
+  // Wire chat
+  // (Already wired above)
+
+  </script>
 </body>
 </html>
