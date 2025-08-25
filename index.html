@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micronudger-coach — AI Obesity Coaching (Safe Mode)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+
+  <div id="app">
+    <div class="card">
+      <div class="topbar">
+        <div class="title">micronudger-coach <span class="badge">beta</span></div>
+        <div class="controls">
+          <button id="btnSettings" title="Open settings">Settings</button>
+          <button id="btnWipe" title="Wipe history & profile">Wipe</button>
+          <button id="btnLock" title="Lock the app">Lock</button>
+        </div>
+      </div>
+
+      <div id="banner" class="banner"></div>
+      <div id="transcript"></div>
+
+      <div class="composer">
+        <input id="userInput" type="text" placeholder="Type a message… (press Enter)" autocomplete="off" />
+        <button id="sendBtn">Send</button>
+      </div>
+      <div class="footer-note">
+        This tool offers general lifestyle coaching only and does <b>not</b> provide diagnosis or medical advice.
+        If this is an emergency, call 911 (U.S.) or your local emergency number. For mental health crises in the U.S., call or text <b>988</b>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate: set OR enter password -->
+  <div class="overlay" id="gate" style="display:none">
+    <div class="sheet">
+      <h2 id="gateTitle">Welcome</h2>
+      <p class="small" id="gateDesc">Create a passphrase to lock your coach. You’ll use this to unlock later.</p>
+      <label for="pw">Passphrase</label>
+      <input id="pw" type="password" placeholder="••••••••" />
+      <label for="pw2" id="pw2label">Confirm passphrase</label>
+      <input id="pw2" type="password" placeholder="••••••••" />
+      <button id="unlockBtn">Save & Continue</button>
+      <p class="small">Your passphrase hash is stored locally in your browser (localStorage). It is never sent to a server.</p>
+    </div>
+  </div>
+
+  <!-- Name + preferences capture -->
+  <div class="overlay" id="onboard" style="display:none">
+    <div class="sheet">
+      <h2>Let’s personalize your coach</h2>
+      <p>Please tell me your first name and a daily nudge time. I’ll greet you by name and remember your preferred time.</p>
+      <label for="who">Your name</label>
+      <input id="who" type="text" placeholder="e.g., Alex" />
+      <label for="nudgetime">Daily nudge time (24h HH:MM)</label>
+      <input id="nudgetime" type="time" />
+      <label for="tzoffset">Timezone offset (minutes, optional)</label>
+      <input id="tzoffset" type="number" placeholder="Leave blank to auto-detect" />
+      <button id="saveOnboardBtn">Save</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="overlay" id="settings" style="display:none">
+    <div class="sheet">
+      <h2>Settings</h2>
+      <label for="s_name">Name</label>
+      <input id="s_name" type="text" />
+      <label for="s_time">Daily nudge time</label>
+      <input id="s_time" type="time" />
+      <label for="s_tz">Timezone offset (minutes; blank = auto)</label>
+      <input id="s_tz" type="number" />
+      <button id="saveSettingsBtn">Save</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
